@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Hemoglobin Beta",
+    "uniprot_id": "P68871",
+    "function": "Transports oxygen in the blood",
+    "category": "Transport"
+  },
+  {
+    "id": 2,
+    "name": "Insulin",
+    "uniprot_id": "P01308",
+    "function": "Regulates blood glucose levels",
+    "category": "Hormone"
+  },
+  {
+    "id": 3,
+    "name": "Myoglobin",
+    "uniprot_id": "P02144",
+    "function": "Stores oxygen in muscle tissue",
+    "category": "Storage"
+  },
+  {
+    "id": 4,
+    "name": "Lysozyme C",
+    "uniprot_id": "P00698",
+    "function": "Breaks down bacterial cell walls",
+    "category": "Enzyme"
+  },
+  {
+    "id": 5,
+    "name": "Cytochrome c",
+    "uniprot_id": "P99999",
+    "function": "Transfers electrons in mitochondria",
+    "category": "Transport"
+  },
+  {
+    "id": 6,
+    "name": "p53 Tumor Suppressor",
+    "uniprot_id": "P04637",
+    "function": "Regulates cell division and prevents cancer",
+    "category": "Regulation"
+  },
+  {
+    "id": 7,
+    "name": "EGFR (Epidermal Growth Factor Receptor)",
+    "uniprot_id": "P00533",
+    "function": "Controls cell growth and signaling",
+    "category": "Receptor"
+  },
+  {
+    "id": 8,
+    "name": "Carbonic Anhydrase II",
+    "uniprot_id": "P00915",
+    "function": "Balances pH in blood",
+    "category": "Enzyme"
+  },
+  {
+    "id": 9,
+    "name": "Serum Albumin",
+    "uniprot_id": "P02768",
+    "function": "Transports hormones and fatty acids",
+    "category": "Transport"
+  },
+  {
+    "id": 10,
+    "name": "Pancreatic Alpha-Amylase",
+    "uniprot_id": "P04746",
+    "function": "Breaks down starch into sugars",
+    "category": "Enzyme"
+  }
+]

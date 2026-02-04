@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "name": "Heme B",
+    "type": "Cofactor",
+    "description": "Essential iron-containing molecule for oxygen binding."
+  },
+  {
+    "id": 2,
+    "name": "Glucose",
+    "type": "Carbohydrate",
+    "description": "Primary energy source for cellular metabolism."
+  },
+  {
+    "id": 3,
+    "name": "Aspirin",
+    "type": "Drug",
+    "description": "Anti-inflammatory and pain reliever (COX inhibitor)."
+  },
+  {
+    "id": 4,
+    "name": "Ibuprofen",
+    "type": "Drug",
+    "description": "Non-steroidal anti-inflammatory drug (NSAID)."
+  },
+  {
+    "id": 5,
+    "name": "Caffeine",
+    "type": "Stimulant",
+    "description": "CNS stimulant that blocks adenosine receptors."
+  },
+  {
+    "id": 6,
+    "name": "ATP",
+    "type": "Metabolite",
+    "description": "The primary energy currency of the cell."
+  },
+  {
+    "id": 7,
+    "name": "Penicillin G",
+    "type": "Antibiotic",
+    "description": "Treats bacterial infections by targeting cell walls."
+  },
+  {
+    "id": 8,
+    "name": "Dopamine",
+    "type": "Neurotransmitter",
+    "description": "Chemical messenger for reward and motor control."
+  },
+  {
+    "id": 9,
+    "name": "Cholesterol",
+    "type": "Lipid",
+    "description": "Component of cell membranes and precursor to steroids."
+  },
+  {
+    "id": 10,
+    "name": "Gefitinib",
+    "type": "Drug",
+    "description": "Cancer medication that targets EGFR."
+  }
+]
