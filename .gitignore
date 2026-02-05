@@ -39,6 +39,10 @@ Desktop.ini
 .pytest_cache/
 .coverage
 htmlcov/
+tests/diagnostics/
 
 # Logs
 *.log
+
+# Documentation (optional - keep in repo for reference)
+# docs/
