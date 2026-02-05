@@ -43,7 +43,21 @@ if not st.session_state.backend_started:
                 stderr=subprocess.DEVNULL
             )
             st.session_state.backend_process = backend_process
-            time.sleep(3)
+            
+            # Poll backend health instead of fixed sleep
+            max_attempts = 15
+            for attempt in range(max_attempts):
+                time.sleep(0.5)
+                try:
+                    response = requests.get(f"{API_URL}/health", timeout=1)
+                    if response.status_code == 200:
+                        break
+                except:
+                    if attempt == max_attempts - 1:
+                        st.error("Backend failed to start")
+                        backend_process.kill()
+                        st.stop()
+            
             st.session_state.backend_started = True
             st.rerun()
     st.stop()
@@ -54,15 +68,25 @@ st.sidebar.header("🎛️ Control Panel")
 if st.sidebar.button("🛑 STOP BIOCANVAS", type="secondary"):
     if st.session_state.backend_process:
         st.session_state.backend_process.terminate()
+        time.sleep(1)
+        if st.session_state.backend_process.poll() is None:
+            st.session_state.backend_process.kill()
     st.session_state.backend_started = False
     st.rerun()
 
+@st.cache_data(ttl=300)
+def fetch_proteins():
+    response = requests.get(f"{API_URL}/proteins", timeout=5)
+    return response.json()
+
+@st.cache_data(ttl=300)
+def fetch_ligands():
+    response = requests.get(f"{API_URL}/ligands", timeout=5)
+    return response.json()
+
 try:
-    proteins_response = requests.get(f"{API_URL}/proteins", timeout=5)
-    ligands_response = requests.get(f"{API_URL}/ligands", timeout=5)
-    
-    proteins = proteins_response.json()
-    ligands = ligands_response.json()
+    proteins = fetch_proteins()
+    ligands = fetch_ligands()
     
     protein_options = {f"{p['name']} ({p['uniprot_id']})": p for p in proteins}
     selected_protein_key = st.sidebar.selectbox("Select Protein", list(protein_options.keys()))

@@ -3,60 +3,70 @@
     "id": 1,
     "name": "Heme B",
     "type": "Cofactor",
-    "description": "Essential iron-containing molecule for oxygen binding."
+    "description": "Essential iron-containing molecule for oxygen binding.",
+    "pubchem_cid": 4973
   },
   {
     "id": 2,
     "name": "Glucose",
     "type": "Carbohydrate",
-    "description": "Primary energy source for cellular metabolism."
+    "description": "Primary energy source for cellular metabolism.",
+    "pubchem_cid": 5793
   },
   {
     "id": 3,
     "name": "Aspirin",
     "type": "Drug",
-    "description": "Anti-inflammatory and pain reliever (COX inhibitor)."
+    "description": "Anti-inflammatory and pain reliever (COX inhibitor).",
+    "pubchem_cid": 2244
   },
   {
     "id": 4,
     "name": "Ibuprofen",
     "type": "Drug",
-    "description": "Non-steroidal anti-inflammatory drug (NSAID)."
+    "description": "Non-steroidal anti-inflammatory drug (NSAID).",
+    "pubchem_cid": 3672
   },
   {
     "id": 5,
     "name": "Caffeine",
     "type": "Stimulant",
-    "description": "CNS stimulant that blocks adenosine receptors."
+    "description": "CNS stimulant that blocks adenosine receptors.",
+    "pubchem_cid": 2519
   },
   {
     "id": 6,
     "name": "ATP",
     "type": "Metabolite",
-    "description": "The primary energy currency of the cell."
+    "description": "The primary energy currency of the cell.",
+    "pubchem_cid": 5957
   },
   {
     "id": 7,
     "name": "Penicillin G",
     "type": "Antibiotic",
-    "description": "Treats bacterial infections by targeting cell walls."
+    "description": "Treats bacterial infections by targeting cell walls.",
+    "pubchem_cid": 5904
   },
   {
     "id": 8,
     "name": "Dopamine",
     "type": "Neurotransmitter",
-    "description": "Chemical messenger for reward and motor control."
+    "description": "Chemical messenger for reward and motor control.",
+    "pubchem_cid": 681
   },
   {
     "id": 9,
     "name": "Cholesterol",
     "type": "Lipid",
-    "description": "Component of cell membranes and precursor to steroids."
+    "description": "Component of cell membranes and precursor to steroids.",
+    "pubchem_cid": 5997
   },
   {
     "id": 10,
     "name": "Gefitinib",
     "type": "Drug",
-    "description": "Cancer medication that targets EGFR."
+    "description": "Cancer medication that targets EGFR.",
+    "pubchem_cid": 123631
   }
 ]
