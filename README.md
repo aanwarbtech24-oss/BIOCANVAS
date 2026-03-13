@@ -2,20 +2,31 @@
 
 **Production-Ready Molecular Docking Platform**
 
-A modern, full-stack bioinformatics application for computational chemistry research and drug discovery. BIOCANVAS combines a powerful FastAPI backend with a responsive React frontend to provide an intuitive interface for molecular docking calculations.
+A modern, full-stack bioinformatics application for computational chemistry research and drug discovery. BIOCANVAS combines a FastAPI backend with a responsive React frontend to provide an intuitive workflow for protein-ligand docking, 3D inspection, and result analysis.
 
 ---
 
 ## ✨ Features
 
-- 🚀 **FastAPI Backend** - High-performance async API
-- ⚛️ **React Frontend** - Modern, responsive web interface
-- 🔬 **Molecular Docking** - AutoDock Vina integration
-- 📊 **3D Visualization** - Interactive molecular structure viewing
-- 📁 **Job Management** - Track docking jobs and results
-- 🔄 **Async Tasks** - Non-blocking job processing
-- 📱 **Responsive Design** - Works on desktop & tablet
-- ✅ **Production Ready** - Comprehensive error handling
+- 🚀 **FastAPI Backend** - Async API with bounded background job execution
+- ⚛️ **React Frontend** - Multi-step docking pipeline with modern UX
+- 🔬 **Real Docking Engine** - AutoDock Vina CLI integration (macOS/Linux friendly)
+- 🧪 **Simulation Fallback** - Deterministic simulated mode when Vina is unavailable
+- 📊 **Advanced 3D Visualization** - Protein + ligand rendering with pose inspection
+- 🧭 **Unified Selector UX** - Consistent protein/ligand selectors across app flows
+- 🗃️ **Persistent Job Store** - SQLite-backed job tracking and status retrieval
+- 🧷 **Result Integrity Signals** - Clear simulated-result banners and watermarks
+- ✅ **Hardened Runtime** - Error boundaries, health checks, and safer async orchestration
+
+---
+
+## 🆕 What BIOCANVAS v2.0 Can Do
+
+- Run end-to-end docking jobs from uploaded/custom protein data and ligand SMILES.
+- Return ranked poses with affinity, RMSD bounds, and ligand efficiency metrics.
+- Render docked complexes in the Results step using backend-provided `output_pdbqt`.
+- Continue operating in simulation mode for demos without hiding that results are simulated.
+- Keep API responsive under load with controlled concurrency and persistent job state.
 
 ---
 
@@ -112,13 +123,12 @@ BIOCANVAS/
 - `GET /` - API information
 - `GET /health` - Server status
 
-### Job Management
-- `POST /jobs` - Submit docking job
-- `GET /jobs` - List all jobs
-- `GET /jobs/{job_id}` - Get job status
+### Docking Jobs
+- `POST /dock` - Submit docking job (`multipart/form-data`: `file` + `smiles`)
+- `GET /jobs/{job_id}` - Get job status/result payload
 
 ### Results
-- `GET /results/{path}` - Download result files
+- `GET /results/{path}` - Download generated docking artifacts
 
 ### Documentation
 - `GET /docs` - Interactive Swagger UI

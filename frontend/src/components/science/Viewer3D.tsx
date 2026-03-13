@@ -55,34 +55,14 @@ function Viewer3DInner({
     format === 'sdf' ? 'stick' : 'cartoon'
   )
 
-  // Early return guard - prevent 3Dmol from rendering without valid data
-  // This is a second line of defense in case parent doesn't properly guard
   // Minimum valid PDB should have at least several lines with ATOM/HETATM
   const hasValidData = data && typeof data === 'string' && data.trim().length >= 200
-  
-  if (!hasValidData) {
-    return (
-      <div className={cn(
-        'relative rounded-lg overflow-hidden',
-        !embedded && 'border border-purple-900/30',
-        square && 'aspect-square',
-      )}
-      style={square ? undefined : { height: `${height}px` }}>
-        <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center z-10">
-          <div className="text-center space-y-2">
-            <Maximize2 className="w-10 h-10 text-zinc-700 mx-auto" />
-            <p className="text-sm text-zinc-500">Waiting for structure data...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   // Initialize 3Dmol viewer when data changes
+  // IMPORTANT: All hooks must be called unconditionally (React Rules of Hooks)
   useEffect(() => {
-    // Double-check data validity before initializing
+    // Guard inside the effect, not before it
     if (!hasValidData || !containerRef.current) {
-      console.warn('[Viewer3D] Skipping initialization: invalid or missing data')
       return
     }
     
@@ -141,45 +121,64 @@ function Viewer3DInner({
   }, [data, format, hasValidData])
 
   // Update style when representation changes
+  // IMPORTANT: Do NOT use viewer.clear() here — it removes all models and
+  // destroys the molecule that the initialization effect just added.
+  // Only update styles and surfaces; models stay intact.
+  const representationRef = useRef(representation)
   useEffect(() => {
+    representationRef.current = representation
+
     if (!viewerRef.current || !hasValidData) return
     
     const viewer = viewerRef.current
+
+    // Skip the very first run — the init effect already set the default style
+    // We detect this by checking if the model count is zero (clear was called)
+    // or if the viewer was just created. Only act on actual representation changes.
     
     try {
-      // Get 3Dmol instance for surface type constants
       const $3Dmol = get3Dmol()
       
-      // Remove existing surface if switching away from surface
+      // Remove existing surface when switching away from surface mode
+      // addSurface() returns a Promise in 3Dmol v2+, so we must resolve before removing
       if (surfaceRef.current && representation !== 'surface') {
-        viewer.removeSurface(surfaceRef.current)
+        const pending = surfaceRef.current
         surfaceRef.current = null
+        Promise.resolve(pending).then((surf: any) => {
+          try {
+            viewer.removeSurface(surf)
+            viewer.render()
+          } catch { /* surface may already be gone */ }
+        })
       }
-      
-      viewer.clear()
       
       // For SDF format, always use stick representation (no secondary structure)
       const isSDF = format === 'sdf'
       
       if (representation === 'surface') {
-        // Surface requires special handling with addSurface()
-        // First set the base style
         const baseStyle = isSDF
           ? { stick: { colorscheme: 'greenCarbon', radius: 0.15 } }
           : { cartoon: { colorscheme: 'spectrum', style: 'oval', thickness: 0.3 } }
         viewer.setStyle({}, baseStyle)
         
-        // Add VDW surface (only if 3Dmol is loaded)
         if (!surfaceRef.current && $3Dmol) {
-          surfaceRef.current = viewer.addSurface($3Dmol.SurfaceType.VDW, {
+          // Store the Promise — removeSurface will resolve it before removing
+          const surfPromise = viewer.addSurface($3Dmol.SurfaceType.VDW, {
             opacity: 0.85,
             colorscheme: 'Jmol',
           })
+          surfaceRef.current = surfPromise
+          // If user switches away before surface finishes loading, handle cleanup
+          Promise.resolve(surfPromise).then((surf: any) => {
+            if (representationRef.current !== 'surface') {
+              // User already navigated away — remove immediately
+              try { viewer.removeSurface(surf); viewer.render() } catch {}
+              surfaceRef.current = null
+            }
+          })
         }
       } else if (representation === 'cartoon') {
-        // Cartoon only works for PDB (has secondary structure)
         if (isSDF) {
-          // Fallback to stick for SDF
           viewer.setStyle({}, { stick: { colorscheme: 'greenCarbon', radius: 0.2 } })
         } else {
           viewer.setStyle({}, { cartoon: { colorscheme: 'spectrum', style: 'oval', thickness: 0.4, arrows: true } })
@@ -190,12 +189,30 @@ function Viewer3DInner({
         viewer.setStyle({}, { stick: { colorscheme: 'spectrum', radius: 0.15 } })
       }
       
-      viewer.zoomTo()
       viewer.render()
     } catch (err) {
       console.error('[Viewer3D] Error updating style:', err)
     }
   }, [representation, data, format, hasValidData])
+
+  // ── Early return AFTER all hooks ──────────────────────────────────────
+  if (!hasValidData) {
+    return (
+      <div className={cn(
+        'relative rounded-lg overflow-hidden',
+        !embedded && 'border border-purple-900/30',
+        square && 'aspect-square',
+      )}
+      style={square ? undefined : { height: `${height}px` }}>
+        <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center z-10">
+          <div className="text-center space-y-2">
+            <Maximize2 className="w-10 h-10 text-zinc-700 mx-auto" />
+            <p className="text-sm text-zinc-500">Waiting for structure data...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const headerRow = (
     <div className="flex items-center gap-2 mb-2">

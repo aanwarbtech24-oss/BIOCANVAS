@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   Layers,
   TrendingDown,
+  AlertTriangle,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -32,6 +33,7 @@ export function ResultsStep() {
     customPdbName,
     selectedLigand,
     dockingJobId,
+    proteinPdbData,
   } = useDockingStore()
 
   // ── Job Data from API ────────────────────────────────────────────────
@@ -52,8 +54,8 @@ export function ResultsStep() {
   const proteinLabel = selectedProtein?.name ?? customPdbName ?? 'Protein'
   const ligandLabel = selectedLigand?.name ?? 'Custom SMILES'
 
-  // Get viewer data (protein PDB)
-  const viewerData = customPdbData
+  // Get viewer data (protein PDB) — prefer custom upload, then AlphaFold fetch
+  const viewerData = customPdbData ?? proteinPdbData
 
   return (
     <div className="min-h-[400px] animate-in fade-in slide-in-from-right-4 duration-300">
@@ -64,6 +66,24 @@ export function ResultsStep() {
         poseCount={poses.length}
         isSimulated={isSimulated}
       />
+
+      {/* ── SIMULATED WARNING BANNER ─────────────────────────────── */}
+      {isSimulated && (
+        <div className="mt-4 rounded-xl border-2 border-amber-500/40 bg-amber-500/10 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-6 w-6 shrink-0 text-amber-400" />
+            <div>
+              <p className="text-lg font-bold uppercase tracking-wide text-amber-400">
+                Simulated Results — AutoDock Vina Not Installed
+              </p>
+              <p className="mt-1 text-sm text-amber-300/70">
+                These docking scores and poses are <span className="font-semibold text-amber-300">artificially generated</span> for
+                demonstration purposes only. Install AutoDock Vina to get real molecular docking results.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Bento Grid ───────────────────────────────────────────────── */}
       <div className="mt-5 grid grid-cols-12 gap-4">
@@ -81,7 +101,7 @@ export function ResultsStep() {
         {/* Main Right — Data Column */}
         <div className="col-span-12 space-y-4 lg:col-span-4">
           {/* Lead Card: Binding Affinity + LE */}
-          <LeadCard pose={activePose} poseIndex={activePoseIndex} />
+          <LeadCard pose={activePose} poseIndex={activePoseIndex} isSimulated={isSimulated} />
 
           {/* Lipinski Pulse */}
           <LipinskiPulse lipinski={lipinski} />
@@ -136,8 +156,8 @@ const ResultsHeader = memo(function ResultsHeader({
 
       <div className="flex items-center gap-2">
         {isSimulated && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-400">
-            <Zap className="h-2.5 w-2.5" /> Simulated
+          <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-amber-500/40 bg-amber-500/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-400">
+            <Zap className="h-3.5 w-3.5" /> Simulated
           </span>
         )}
         <span className="inline-flex items-center gap-1.5 rounded-full border border-surface-border bg-surface-highlight/60 px-3 py-1 text-xs text-muted-foreground">
@@ -155,7 +175,7 @@ ResultsHeader.displayName = 'ResultsHeader'
 // Lead Card — Binding Affinity + Ligand Efficiency
 // ---------------------------------------------------------------------------
 
-const LeadCard = memo(function LeadCard({ pose, poseIndex }: { pose: DockingPose | null; poseIndex: number }) {
+const LeadCard = memo(function LeadCard({ pose, poseIndex, isSimulated }: { pose: DockingPose | null; poseIndex: number; isSimulated: boolean }) {
   if (!pose) {
     return (
       <div className="rounded-2xl border border-surface-border bg-surface/40 p-5 text-center">
@@ -182,7 +202,15 @@ const LeadCard = memo(function LeadCard({ pose, poseIndex }: { pose: DockingPose
         : 'text-amber-400'
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-surface-border bg-gradient-to-br from-surface/60 to-primary/5">
+    <div className="relative overflow-hidden rounded-2xl border border-surface-border bg-gradient-to-br from-surface/60 to-primary/5">
+      {/* Simulated watermark */}
+      {isSimulated && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <span className="-rotate-12 select-none text-3xl font-black uppercase tracking-[0.25em] text-amber-500/15">
+            SIMULATED
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between border-b border-surface-border/50 px-5 py-3">
         <div className="flex items-center gap-2">

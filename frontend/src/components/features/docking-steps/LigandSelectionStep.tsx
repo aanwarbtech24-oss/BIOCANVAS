@@ -11,6 +11,7 @@ import {
   Check,
   Search,
   Atom,
+  ChevronDown,
   X,
   FileText,
   ExternalLink,
@@ -42,6 +43,7 @@ export function LigandSelectionStep() {
   const [useCustomSmilesMode, setUseCustomSmilesMode] = useState(false)
   const [customSmilesInput, setCustomSmilesInput] = useState('')
   const [ligandSearchQuery, setLigandSearchQuery] = useState('')
+  const [ligandDropdownOpen, setLigandDropdownOpen] = useState(false)
 
   // ── Data hooks ───────────────────────────────────────────────────────
   const { data: ligands, isLoading: ligandsLoading, isError: ligandsError } = useLigands()
@@ -73,6 +75,8 @@ export function LigandSelectionStep() {
       setLigandSmiles(ligand.smiles)
       setUseCustomSmilesMode(false)
       setCustomSmilesInput('')
+      setLigandDropdownOpen(false)
+      setLigandSearchQuery('')
     },
     [setSelectedLigand, setLigandSmiles],
   )
@@ -214,63 +218,87 @@ export function LigandSelectionStep() {
             )}
 
             {!ligandsLoading && !ligandsError && (
-              <div className="space-y-3">
-                {/* Search bar */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
-                  <input
-                    type="text"
-                    value={ligandSearchQuery}
-                    onChange={(e) => setLigandSearchQuery(e.target.value)}
-                    placeholder="Search by name, type, description…"
-                    className="w-full rounded-lg border border-surface-border bg-surface-highlight py-2.5 pl-9 pr-3 text-sm text-white placeholder-muted outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/30"
-                  />
-                </div>
+              <div className="relative">
+                {/* Dropdown trigger */}
+                <button
+                  type="button"
+                  onClick={() => setLigandDropdownOpen((o) => !o)}
+                  className={cn(
+                    'flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-colors',
+                    ligandDropdownOpen
+                      ? 'border-primary bg-surface-highlight ring-1 ring-primary/30'
+                      : 'border-surface-border bg-surface-highlight/60 hover:border-muted',
+                  )}
+                >
+                  {selectedLigand ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-secondary" />
+                      <span className="font-medium text-white">{selectedLigand.name}</span>
+                      <span className="text-xs text-muted-foreground">CID {selectedLigand.pubchem_cid}</span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Select a ligand…</span>
+                  )}
+                  <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', ligandDropdownOpen && 'rotate-180')} />
+                </button>
 
-                {/* Ligand grid */}
-                {filteredLigands.length === 0 ? (
-                  <p className="py-6 text-center text-xs text-muted-foreground">
-                    No ligands match &ldquo;{ligandSearchQuery}&rdquo;
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {filteredLigands.map((l) => {
-                      const isSelected = selectedLigand?.id === l.id
-                      return (
-                        <button
-                          key={l.id}
-                          type="button"
-                          onClick={() => handleLigandSelect(l)}
-                          className={cn(
-                            'group relative flex flex-col items-start rounded-xl border px-4 py-3 text-left transition-all',
-                            isSelected
-                              ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                              : 'border-surface-border bg-surface-highlight/60 hover:border-muted hover:bg-surface-highlight',
-                          )}
-                        >
-                          {isSelected && (
-                            <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary/20">
-                              <Check className="h-3 w-3 text-primary" />
-                            </span>
-                          )}
+                {/* Dropdown panel */}
+                {ligandDropdownOpen && (
+                  <div className="absolute z-30 mt-2 w-full rounded-xl border border-surface-border bg-surface shadow-2xl shadow-black/50">
+                    {/* Search inside dropdown */}
+                    <div className="border-b border-surface-border px-3 py-2">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+                        <input
+                          type="text"
+                          value={ligandSearchQuery}
+                          onChange={(e) => setLigandSearchQuery(e.target.value)}
+                          placeholder="Search name, type, description…"
+                          autoFocus
+                          className="w-full rounded-lg bg-surface-highlight py-2 pl-8 pr-3 text-xs text-white placeholder-muted focus:outline-none"
+                        />
+                      </div>
+                    </div>
 
-                          <span className="text-sm font-medium text-white group-hover:text-white">
-                            {l.name}
-                          </span>
-
-                          <span className={cn(
-                            'mt-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
-                            ligandTypeColor(l.type),
-                          )}>
-                            {l.type}
-                          </span>
-
-                          <span className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                            {l.description}
-                          </span>
-                        </button>
-                      )
-                    })}
+                    <div className="max-h-60 overflow-y-auto overscroll-contain py-1">
+                      {filteredLigands.length === 0 ? (
+                        <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+                          No results for &ldquo;{ligandSearchQuery}&rdquo;
+                        </p>
+                      ) : (
+                        filteredLigands.map((l) => {
+                          const isSelected = selectedLigand?.id === l.id
+                          return (
+                            <button
+                              key={l.id}
+                              type="button"
+                              onClick={() => handleLigandSelect(l)}
+                              className={cn(
+                                'flex w-full items-start gap-3 px-4 py-3 text-left transition-colors',
+                                isSelected ? 'bg-primary/5' : 'hover:bg-surface-highlight',
+                              )}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-white">
+                                    {l.name}
+                                  </span>
+                                  <span className={cn(
+                                    'rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase',
+                                    ligandTypeColor(l.type),
+                                  )}>
+                                    {l.type}
+                                  </span>
+                                </div>
+                                <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
+                                  CID {l.pubchem_cid} · {l.description}
+                                </p>
+                              </div>
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

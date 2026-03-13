@@ -9,6 +9,8 @@ import hashlib
 import logging
 import random
 import re
+import shutil
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -37,13 +39,9 @@ STANDARD_RESIDUES = {
     "TYR", "VAL",
 }
 
-# Optional Vina import
-try:
-    from vina import Vina
-    VINA_AVAILABLE = True
-except ImportError:
-    VINA_AVAILABLE = False
-    Vina = None
+# Detect Vina CLI binary (prefer CLI over broken Python bindings)
+VINA_BIN = shutil.which("vina")
+VINA_AVAILABLE = VINA_BIN is not None
 
 # Optional PLIP import (needs openbabel)
 try:
@@ -464,6 +462,72 @@ class DockingEngine:
         }
 
     # ------------------------------------------------------------------
+    # Simulated ligand 3D coordinate generation (for visualization)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _generate_simulated_ligand(
+        mol, center: List[float], rng: random.Random
+    ) -> str | None:
+        """Generate HETATM lines for a ligand conformer placed at pocket center."""
+        try:
+            mol3d = Chem.AddHs(mol)
+            params = AllChem.ETKDGv3()
+            params.randomSeed = rng.randint(0, 2**31)
+            status = AllChem.EmbedMolecule(mol3d, params)
+            if status != 0:
+                # Fallback: less strict embedding
+                AllChem.EmbedMolecule(mol3d, AllChem.ETKDGv3())
+            AllChem.MMFFOptimizeMolecule(mol3d, maxIters=200)
+            mol3d = Chem.RemoveHs(mol3d)
+
+            conf = mol3d.GetConformer()
+            # Compute ligand centroid and translate to pocket center
+            positions = conf.GetPositions()
+            centroid = positions.mean(axis=0)
+            translation = np.array(center) - centroid
+
+            lines: List[str] = []
+            for i, atom in enumerate(mol3d.GetAtoms()):
+                pos = conf.GetAtomPosition(i)
+                x = pos.x + translation[0]
+                y = pos.y + translation[1]
+                z = pos.z + translation[2]
+                elem = atom.GetSymbol()
+                name = f" {elem:<3s}" if len(elem) < 4 else elem
+                lines.append(
+                    f"HETATM{i + 1:5d} {name:4s} LIG X   1    "
+                    f"{x:8.3f}{y:8.3f}{z:8.3f}  1.00  0.00          {elem:>2s}"
+                )
+            return "\n".join(lines)
+        except Exception as exc:
+            logger.warning("Could not generate simulated ligand 3D: %s", exc)
+            return None
+
+    @staticmethod
+    def _offset_ligand_lines(
+        base_lines: str, rng: random.Random, pose_index: int
+    ) -> str:
+        """Apply small random translation to ligand HETATM lines for pose variety."""
+        if pose_index == 0:
+            return base_lines
+        dx = rng.uniform(-1.5, 1.5)
+        dy = rng.uniform(-1.5, 1.5)
+        dz = rng.uniform(-1.5, 1.5)
+        out: List[str] = []
+        for line in base_lines.split("\n"):
+            if line.startswith("HETATM"):
+                try:
+                    x = float(line[30:38]) + dx
+                    y = float(line[38:46]) + dy
+                    z = float(line[46:54]) + dz
+                    line = f"{line[:30]}{x:8.3f}{y:8.3f}{z:8.3f}{line[54:]}"
+                except (ValueError, IndexError):
+                    pass
+            out.append(line)
+        return "\n".join(out)
+
+    # ------------------------------------------------------------------
     # Simulation mode (deterministic mock when Vina is absent)
     # ------------------------------------------------------------------
 
@@ -500,11 +564,16 @@ class DockingEngine:
         # Lipinski — real calculation (only needs SMILES + RDKit)
         lipinski = self.calculate_lipinski(smiles)
 
+        # Generate 3D ligand conformer placed at the binding pocket center
+        ligand_pdbqt_str = self._generate_simulated_ligand(mol, center, rng)
+
         # Mock multi-pose results
         heavy_atoms = mol.GetNumHeavyAtoms() or 1
         num_poses = rng.randint(3, 9)
         best_affinity = round(rng.uniform(-11.5, -3.5), 2)
 
+        # Build multi-MODEL PDBQT string with slightly varied poses
+        model_blocks: List[str] = []
         poses: List[Dict[str, Any]] = []
         for i in range(num_poses):
             aff = best_affinity if i == 0 else round(
@@ -524,6 +593,26 @@ class DockingEngine:
                 "interactions": interactions,
             })
 
+            # Apply small random translation for each pose > 0
+            if ligand_pdbqt_str:
+                pose_lines = self._offset_ligand_lines(
+                    ligand_pdbqt_str, rng, i,
+                )
+                remark = (
+                    f"REMARK VINA RESULT:    {aff:.1f}      "
+                    f"{rmsd_lb:.3f}      {rmsd_ub:.3f}"
+                )
+                model_blocks.append(
+                    f"MODEL {i + 1}\n{remark}\n{pose_lines}\nENDMDL"
+                )
+
+        output_pdbqt = "\n".join(model_blocks) if model_blocks else None
+
+        # Save to disk for consistency with the real path
+        if output_pdbqt:
+            out_path = self.work_dir / f"{job_id}_out.pdbqt"
+            out_path.write_text(output_pdbqt)
+
         logger.info(
             "Job %s: simulation done — %d poses, best=%.2f kcal/mol",
             job_id, num_poses, best_affinity,
@@ -542,6 +631,8 @@ class DockingEngine:
             "box_center": center,
             "box_size": size,
             "simulated": True,
+            # Ligand coordinates for the 3D viewer
+            "output_pdbqt": output_pdbqt,
         }
 
     # ------------------------------------------------------------------
@@ -563,15 +654,30 @@ class DockingEngine:
             # Lipinski descriptors (always available — RDKit only)
             lipinski = self.calculate_lipinski(smiles)
 
-            # Run Vina — request up to 9 poses
-            v = Vina(sf_name="vina")
-            v.set_receptor(str(receptor_path))
-            v.set_ligand_from_file(str(ligand_path))
-            v.compute_vina_maps(center=center, box_size=size)
-            v.dock(exhaustiveness=8, n_poses=9)
-
+            # Run Vina CLI — request up to 9 poses
             out_path = self.work_dir / f"{job_id}_out.pdbqt"
-            v.write_poses(str(out_path), n_poses=9)
+            cmd = [
+                VINA_BIN,
+                "--receptor", str(receptor_path),
+                "--ligand", str(ligand_path),
+                "--center_x", f"{center[0]:.3f}",
+                "--center_y", f"{center[1]:.3f}",
+                "--center_z", f"{center[2]:.3f}",
+                "--size_x", f"{size[0]:.3f}",
+                "--size_y", f"{size[1]:.3f}",
+                "--size_z", f"{size[2]:.3f}",
+                "--exhaustiveness", "8",
+                "--num_modes", "9",
+                "--out", str(out_path),
+            ]
+            logger.info("Job %s: running vina CLI: %s", job_id, " ".join(cmd))
+            proc = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=300,
+            )
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    f"Vina exited with code {proc.returncode}: {proc.stderr[:500]}"
+                )
 
             # Parse all poses (affinity + RMSD + LE per pose)
             poses = self.parse_vina_output(out_path, smiles)
@@ -586,11 +692,14 @@ class DockingEngine:
                 except Exception as exc:
                     logger.warning("Job %s: PLIP skipped — %s", job_id, exc)
 
-            best = poses[0]["affinity"] if poses else float(v.score()[0])
+            best = poses[0]["affinity"] if poses else 0.0
             logger.info(
                 "Job %s: complete — %d poses, best=%.2f kcal/mol",
                 job_id, len(poses), best,
             )
+
+            # Read output PDBQT content for the 3D viewer
+            output_pdbqt = out_path.read_text() if out_path.exists() else None
 
             return {
                 "success": True,
@@ -602,6 +711,7 @@ class DockingEngine:
                 "rmsd": poses[0]["rmsd_ub"] if poses else 0.0,
                 "poses_count": len(poses),
                 "output_file": str(out_path),
+                "output_pdbqt": output_pdbqt,
                 "box_center": center,
                 "box_size": size,
                 "simulated": False,

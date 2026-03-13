@@ -28,6 +28,7 @@ export function DockingRunStep() {
   // ── Zustand Store State ───────────────────────────────────────────────
   const {
     customPdbData,
+    proteinPdbData,
     selectedProtein,
     customPdbName,
     selectedLigand,
@@ -37,11 +38,11 @@ export function DockingRunStep() {
   } = useDockingStore()
 
   // ── Derived state for step completion ─────────────────────────────────
-  const step1Complete = !!(selectedProtein || customPdbData)
+  const step1Complete = !!(selectedProtein || customPdbData || proteinPdbData)
   const step2Complete = !!ligandSmiles
 
-  // ── Get PDB viewer data ───────────────────────────────────────────────
-  const viewerData = customPdbData
+  // ── Get PDB viewer data (either custom or from library protein) ────────
+  const viewerData = customPdbData ?? proteinPdbData;
 
   // ── Data hooks ───────────────────────────────────────────────────────
   const submitDocking = useSubmitDocking()

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { Viewer3D } from '@/components/science/Viewer3D'
 import { useProteins, useProteinStructure } from '@/hooks/useMoleculeLibrary'
 import { useDockingStore } from '@/stores/useDockingStore'
@@ -11,9 +11,8 @@ import {
   Check,
   Upload,
   Search,
-  
+  ChevronDown,
   X,
-  
   ExternalLink,
   Info,
   Loader2,
@@ -32,14 +31,13 @@ export function ProteinTargetStep() {
     setCustomPdbData,
     customPdbName,
     setCustomPdbName,
-    proteinPdbData,
     setProteinPdbData,
     resetLigandAndDocking,
   } = useDockingStore()
 
   // ── Local UI state ───────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(true)  // Show dropdown by default
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showCustomUpload, setShowCustomUpload] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -56,7 +54,7 @@ export function ProteinTargetStep() {
   const viewerData = customPdbData ?? pdbData ?? null
 
   // Store fetched PDB data when it changes (for library proteins)
-  useMemo(() => {
+  useEffect(() => {
     if (pdbData && selectedProtein) {
       setProteinPdbData(pdbData)
     }
@@ -235,50 +233,84 @@ export function ProteinTargetStep() {
             )}
 
             {!proteinsLoading && !proteinsError && (
-              <div className="space-y-3">
-                {/* Search bar */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setDropdownOpen(true) }}
-                    placeholder="Search by name, UniProt ID, or function…"
-                    className="w-full rounded-lg border border-surface-border bg-surface-highlight py-2.5 pl-9 pr-3 text-sm text-white placeholder-muted outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/30"
-                  />
-                </div>
+              <div className="relative">
+                {/* Dropdown trigger */}
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen((o) => !o)}
+                  className={cn(
+                    'flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-colors',
+                    dropdownOpen
+                      ? 'border-primary bg-surface-highlight ring-1 ring-primary/30'
+                      : 'border-surface-border bg-surface-highlight/60 hover:border-muted',
+                  )}
+                >
+                  {selectedProtein ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                      <span className="font-medium text-white">{selectedProtein.name}</span>
+                      <span className="text-xs text-muted-foreground">({selectedProtein.uniprot_id})</span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Select a protein…</span>
+                  )}
+                  <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', dropdownOpen && 'rotate-180')} />
+                </button>
 
-                {/* Protein dropdown */}
+                {/* Dropdown panel */}
                 {dropdownOpen && (
-                  <div className="max-h-64 overflow-y-auto rounded-xl border border-surface-border bg-surface/80">
-                    {filtered.length === 0 ? (
-                      <p className="p-4 text-center text-xs text-muted-foreground">
-                        No proteins match &ldquo;{searchQuery}&rdquo;
-                      </p>
-                    ) : (
-                      filtered.slice(0, 10).map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => handleSelectProtein(p)}
-                          className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-surface-highlight/50"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-white truncate">
-                                {p.name}
-                              </span>
-                              <span className={cn('rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase', categoryColor(p.category))}>
-                                {p.category}
-                              </span>
-                            </div>
-                            <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                              {p.uniprot_id}
-                            </p>
-                          </div>
-                        </button>
-                      ))
-                    )}
+                  <div className="absolute z-30 mt-2 w-full rounded-xl border border-surface-border bg-surface shadow-2xl shadow-black/50">
+                    {/* Search inside dropdown */}
+                    <div className="border-b border-surface-border px-3 py-2">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search name, UniProt ID, or function…"
+                          autoFocus
+                          className="w-full rounded-lg bg-surface-highlight py-2 pl-8 pr-3 text-xs text-white placeholder-muted focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto overscroll-contain py-1">
+                      {filtered.length === 0 ? (
+                        <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+                          No results for &ldquo;{searchQuery}&rdquo;
+                        </p>
+                      ) : (
+                        filtered.slice(0, 10).map((p) => {
+                          const isSelected = selectedProtein?.id === p.id
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => handleSelectProtein(p)}
+                              className={cn(
+                                'flex w-full items-start gap-3 px-4 py-3 text-left transition-colors',
+                                isSelected ? 'bg-primary/5' : 'hover:bg-surface-highlight',
+                              )}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-white truncate">
+                                    {p.name}
+                                  </span>
+                                  <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase', categoryColor(p.category))}>
+                                    {p.category}
+                                  </span>
+                                </div>
+                                <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
+                                  {p.uniprot_id} · {p.function}
+                                </p>
+                              </div>
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
