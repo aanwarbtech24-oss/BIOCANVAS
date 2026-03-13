@@ -44,5 +44,17 @@ tests/diagnostics/
 # Logs
 *.log
 
+# Generated reports
+*.pdf
+
+# Node.js (for React landing page)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vite
+dist/
+
 # Documentation (optional - keep in repo for reference)
 # docs/

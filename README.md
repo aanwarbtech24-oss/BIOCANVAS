@@ -1,52 +1,76 @@
-# 🧬 BIOCANVAS
+# 🧬 BIOCANVAS v2.0
 
-**Educational End-to-End Drug Discovery Pipeline**
+**Production-Ready Molecular Docking Platform**
 
-A modern bioinformatics web application featuring AlphaFold 3D protein visualization and educational molecular docking simulations.
+A modern, full-stack bioinformatics application for computational chemistry research and drug discovery. BIOCANVAS combines a FastAPI backend with a responsive React frontend to provide an intuitive workflow for protein-ligand docking, 3D inspection, and result analysis.
+
+---
+
+## ✨ Features
+
+- 🚀 **FastAPI Backend** - Async API with bounded background job execution
+- ⚛️ **React Frontend** - Multi-step docking pipeline with modern UX
+- 🔬 **Real Docking Engine** - AutoDock Vina CLI integration (macOS/Linux friendly)
+- 🧪 **Simulation Fallback** - Deterministic simulated mode when Vina is unavailable
+- 📊 **Advanced 3D Visualization** - Protein + ligand rendering with pose inspection
+- 🧭 **Unified Selector UX** - Consistent protein/ligand selectors across app flows
+- 🗃️ **Persistent Job Store** - SQLite-backed job tracking and status retrieval
+- 🧷 **Result Integrity Signals** - Clear simulated-result banners and watermarks
+- ✅ **Hardened Runtime** - Error boundaries, health checks, and safer async orchestration
+
+---
+
+## 🆕 What BIOCANVAS v2.0 Can Do
+
+- Run end-to-end docking jobs from uploaded/custom protein data and ligand SMILES.
+- Return ranked poses with affinity, RMSD bounds, and ligand efficiency metrics.
+- Render docked complexes in the Results step using backend-provided `output_pdbqt`.
+- Continue operating in simulation mode for demos without hiding that results are simulated.
+- Keep API responsive under load with controlled concurrency and persistent job state.
 
 ---
 
 ## 🚀 Quick Start
 
-### One-Command Launch:
+### Option 1: One-Command Launch (Recommended)
 
 ```bash
 python3 run.py
 ```
 
-**That's it!** Your browser will open automatically at:
+This will:
+- ✅ Create virtual environment
+- ✅ Install all dependencies
+- ✅ Start API server (port 8000)
+- ✅ Build and serve frontend (port 5173)
+- ✅ Open browser automatically
 
-### 🌐 **http://localhost:8501**
+### Option 2: Manual Setup
 
----
+**Backend:**
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 -m uvicorn backend.main:app --reload
+```
+→ http://localhost:8000/docs
 
-## 📋 What Happens Next
-
-1. **Browser opens** → You see the BIOCANVAS welcome screen
-2. **Click "START BIOCANVAS"** → Backend launches automatically (3 seconds)
-3. **Select protein & ligand** → From the sidebar dropdowns
-4. **View 3D structure** → AlphaFold protein visualization
-5. **Run docking simulation** → Click the big button
-6. **See results** → Binding score, strength, and biological explanation
-
----
-
-## 🎯 Features
-
-- ✅ **10 Curated Proteins** with real UniProt IDs
-- ✅ **10 Biologically Relevant Ligands**
-- ✅ **3D Protein Visualization** via AlphaFold
-- ✅ **Educational Docking Engine** with instant results
-- ✅ **Biologically Accurate Pairs**:
-  - Hemoglobin + Heme B (Strong: -11.5 kcal/mol)
-  - EGFR + Gefitinib (Strong: -9.8 kcal/mol)
-  - Amylase + Glucose (Moderate: -6.2 kcal/mol)
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+→ http://localhost:5173
 
 ---
 
-## 🛑 To Stop
+## 📋 System Requirements
 
-Press `Ctrl + C` in the terminal, or click **"STOP BIOCANVAS"** in the sidebar.
+- **Python** 3.9+
+- **Node.js** 16+
+- **4GB RAM** (minimum)
+- **macOS, Linux, or Windows** (via WSL2)
 
 ---
 
@@ -54,55 +78,222 @@ Press `Ctrl + C` in the terminal, or click **"STOP BIOCANVAS"** in the sidebar.
 
 ```
 BIOCANVAS/
-├── app.py                  # Main unified application
-├── backend/
-│   ├── main.py            # FastAPI backend
-│   └── docking_engine.py  # Docking simulation logic
-├── data/
-│   ├── proteins.json      # 10 proteins with UniProt IDs
-│   └── ligands.json       # 10 ligands
-├── frontend/
-│   └── app.py            # Alternative frontend (standalone)
-└── requirements.txt       # All dependencies
+├── README.md                    # This file
+├── requirements.txt             # Python dependencies
+├── .env.example                 # Configuration template
+├── run.py                       # Main launcher
+├── test_server.py               # Testing utilities
+│
+├── backend/                     # FastAPI Server
+│   ├── main.py                 # Application entry
+│   ├── docking_engine.py       # Docking algorithms
+│   └── routers/                # API route handlers
+│
+├── frontend/                    # React Application
+│   ├── src/
+│   │   ├── App.tsx             # Main component
+│   │   ├── components/         # Reusable components
+│   │   ├── hooks/              # Custom React hooks
+│   │   ├── stores/             # State management
+│   │   └── types/              # TypeScript types
+│   ├── pages/                  # Landing page
+│   └── vite.config.ts          # Build config
+│
+├── data/                        # Sample data
+│   ├── proteins.json           # PDB structures
+│   └── ligands.json            # SMILES strings
+│
+├── docking_jobs/                # Working directory (auto-created)
+├── docs/                        # Documentation
+│   ├── ARCHITECTURE.md         # System design
+│   ├── FRONTEND_GUIDE.md       # Frontend setup
+│   ├── API_REFERENCE.md        # API endpoints
+│   └── DEPLOYMENT.md           # Production guide
+│
+└── tests/                       # Test suite
 ```
 
 ---
 
-## 🔧 Manual Setup (Optional)
+## 🌐 API Endpoints
 
-If you prefer manual control:
+**Base URL:** `http://localhost:8000`
+
+### Health & Status
+- `GET /` - API information
+- `GET /health` - Server status
+
+### Docking Jobs
+- `POST /dock` - Submit docking job (`multipart/form-data`: `file` + `smiles`)
+- `GET /jobs/{job_id}` - Get job status/result payload
+
+### Results
+- `GET /results/{path}` - Download generated docking artifacts
+
+### Documentation
+- `GET /docs` - Interactive Swagger UI
+- `GET /redoc` - ReDoc documentation
+
+**Full API reference:** [docs/API_REFERENCE.md](docs/API_REFERENCE.md)
+
+---
+
+## 🔧 Configuration
+
+Copy `.env.example` to `.env` and customize:
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+cp .env.example .env
+```
 
-# Start the app
-streamlit run app.py
+**Key variables:**
+```env
+BACKEND_PORT=8000          # API server port
+VITE_API_URL=http://localhost:8000  # Frontend API target
+DEBUG=false                 # Debug mode
 ```
 
 ---
 
-## 💡 Technology Stack
+## 📚 Documentation
 
-- **Backend**: FastAPI + Uvicorn
-- **Frontend**: Streamlit
-- **3D Visualization**: py3Dmol + stmol
-- **Data**: AlphaFold Protein Database
-- **Language**: Python 3.10+
+- **[Architecture](docs/ARCHITECTURE.md)** - System design & technical decisions
+- **[Frontend Guide](docs/FRONTEND_GUIDE.md)** - React setup & build
+- **[API Reference](docs/API_REFERENCE.md)** - Complete endpoint documentation
+- **[Deployment](docs/DEPLOYMENT.md)** - Production setup with Docker
 
 ---
 
-## 📊 Test the System
+## 🧪 Testing
 
 ```bash
-python3 test_system.py
+# Test backend health & endpoints
+python3 test_server.py
+
+# Run frontend tests
+cd frontend && npm test
+
+# End-to-end testing
+# (Configure in frontend/vitest.config.ts)
+cd frontend && npm run test:e2e
 ```
 
 ---
 
-## 👨‍💻 Developer
+## 🚀 Production Deployment
 
-Built with ❤️ for bioinformatics education
+### Using Docker
 
-**Version**: 1.0.0  
-**Status**: Production Ready ✅
+```bash
+# Backend
+docker build -f Dockerfile.backend -t biocanvas-api .
+docker run -p 8000:8000 biocanvas-api
+
+# Frontend
+docker build -f Dockerfile.frontend -t biocanvas-ui .
+docker run -p 80:80 biocanvas-ui
+```
+
+### Using systemd (Linux)
+
+See [Deployment Guide](docs/DEPLOYMENT.md#using-systemd-linux)
+
+### Performance Tuning
+
+- **Backend**: Increase worker count in deployment
+- **Frontend**: Enable gzip compression
+- **Caching**: Configure for static assets
+
+See [Deployment Guide](docs/DEPLOYMENT.md#performance-tuning) for details.
+
+---
+
+## 🔗 Optional Dependencies
+
+These enhance functionality but aren't required for basic operation:
+
+### AutoDock Vina (Required for Docking)
+```bash
+conda install -c bioconda autodock-vina
+```
+
+### OpenBabel (PDB Format Conversion)
+```bash
+conda install -c conda-forge openbabel
+```
+
+See [Installation Guide](docs/DEPLOYMENT.md#optional-dependencies-installation)
+
+---
+
+## 🐛 Troubleshooting
+
+### Port Already in Use
+```bash
+lsof -i :8000  # Find process
+kill -9 <PID>  # Stop it
+```
+
+### Module Not Found
+```bash
+pip install -r requirements.txt --force-reinstall
+```
+
+### Frontend Build Fails
+```bash
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+npm run build
+```
+
+---
+
+## 📝 License
+
+[Add your license here]
+
+---
+
+## 👨‍💻 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/improvement`)
+3. Commit changes (`git commit -am 'Add feature'`)
+4. Push to branch (`git push origin feature/improvement`)
+5. Create Pull Request
+
+---
+
+## 📞 Support
+
+For issues and questions:
+- Check [docs/](docs/) for detailed guides
+- Review [API_REFERENCE.md](docs/API_REFERENCE.md) for endpoint usage
+- See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for setup help
+
+---
+
+## 🎯 Roadmap
+
+### v2.0 (Current)
+- ✅ FastAPI backend
+- ✅ React frontend structure
+- ⏳ Job management system
+- ⏳ Results visualization
+
+### v2.1 (Planned)
+- Better error handling
+- User authentication
+- Job history persistence
+- Advanced filtering
+
+### v3.0 (Future)
+- Multi-GPU support
+- Real-time collaboration
+- Result export formats
+- Integration with external APIs
+
+---
+
+**Built with ❤️ for computational chemists**
