@@ -1097,7 +1097,7 @@ def build():
 
     pdf.recommendation(
         "D3", "Backend Tests Are Minimal", "HIGH",
-        "test_phase1.py and test_server.py exist but pytest is commented out in "
+        "tests/test_phase1.py and tests/test_server.py exist but pytest is commented out in "
         "requirements.txt. No CI runs tests. No unit tests for docking_engine methods.",
         "requirements.txt (L17 \u2014 commented pytest)",
         "Uncomment pytest, add it as real dependency. Write unit tests for "

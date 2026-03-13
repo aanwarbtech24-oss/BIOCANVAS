@@ -658,12 +658,12 @@ def build():
 
     pdf.h2("9.1  Test Execution")
     pdf.body(
-        "test_phase1.py submits a real docking job (16-atom PDB + Aspirin SMILES) to the "
+        "tests/test_phase1.py submits a real docking job (16-atom PDB + Aspirin SMILES) to the "
         "running backend, polls /jobs/{id} until completion, then validates every field "
         "in the response."
     )
     pdf.code(
-        "$ python3 test_phase1.py\n"
+        "$ python3 tests/test_phase1.py\n"
         "\n"
         "=== Submitting docking job ===\n"
         "  job_id: 8c5add2c-df29-4185-b8ed-31eff41b553c\n"

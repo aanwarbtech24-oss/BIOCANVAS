@@ -213,9 +213,9 @@ BIOCANVAS/
 ├── README.md
 ├── requirements.txt
 ├── run.py                          # App launcher
-├── test_server.py                  # Manual API test script
-├── install_optional.sh             # rdkit/meeko/biopython installer
-├── start_biocanvas.command         # macOS double-click launcher
+├── tests/test_server.py                  # Manual API test script
+├── scripts/install_optional.sh             # rdkit/meeko/biopython installer
+├── scripts/start_biocanvas.command         # macOS double-click launcher
 ├── .gitignore
 ├── .env.example
 │

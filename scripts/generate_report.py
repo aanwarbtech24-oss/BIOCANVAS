@@ -220,7 +220,7 @@ def generate_report():
 
     pdf.sub_title("3.5 Other Backend Files")
     pdf.bullet("run.py (106 lines) - One-command launcher: creates .venv, installs deps, starts uvicorn, opens browser")
-    pdf.bullet("test_server.py - Backend test suite (36/36 tests passing)")
+    pdf.bullet("tests/test_server.py - Backend test suite (36/36 tests passing)")
     pdf.bullet("requirements.txt - All Python dependencies pinned")
 
     # ============================================================
@@ -345,7 +345,7 @@ def generate_report():
   .env.example                  # Config template
   requirements.txt              # Python deps
   run.py                        # One-command launcher
-  test_server.py                # Backend tests
+  tests/test_server.py                # Backend tests
 
   backend/
     __init__.py

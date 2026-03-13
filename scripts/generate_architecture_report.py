@@ -658,7 +658,7 @@ def create_deployment_section(styles):
     story.append(Paragraph("6.3 Testing", styles['SubSectionHeader']))
     
     testing = [
-        ("Backend Tests", "python3 test_server.py - Tests API endpoints"),
+        ("Backend Tests", "python3 tests/test_server.py - Tests API endpoints"),
         ("Frontend Tests", "cd frontend && npm test - Runs Vitest unit tests"),
         ("E2E Test", "python3 tests/e2e_docking_test.py - Full docking workflow")
     ]

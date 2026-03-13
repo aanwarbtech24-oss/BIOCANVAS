@@ -333,7 +333,7 @@ Features:
 ✅ Pretty status messages
 ```
 
-**2. Bash Launcher** (`start_biocanvas.command`)
+**2. Bash Launcher** (`scripts/start_biocanvas.command`)
 ```
 Features:
 ✅ Double-click to run (Mac/Linux)
@@ -403,7 +403,7 @@ BIOCANVAS/
 ├── run.py                          ✅ NEW - Main Python launcher
 ├── run_v1.5.py                     [Legacy]
 ├── run_v2.py                       ✅ NEW - Enhanced Python launcher
-├── start_biocanvas.command         ✅ UPDATED - Auto-open browser
+├── scripts/start_biocanvas.command         ✅ UPDATED - Auto-open browser
 ├── requirements.txt                ✅ UPDATED - Added python-multipart
 ├── README.md                       [Project overview]
 │
@@ -429,7 +429,7 @@ BIOCANVAS/
 │   │   ├── full_diagnostic.py      ✅ 384 lines - 36 automated tests
 │   │   ├── comprehensive_diagnostic.py
 │   │   └── [Others]
-│   └── test_server.py              ✅ NEW - Server verification (92 lines)
+│   └── tests/test_server.py              ✅ NEW - Server verification (92 lines)
 │
 ├── data/
 │   ├── ligands.json                [Sample data]
@@ -454,11 +454,11 @@ BIOCANVAS/
 | `backend/docking_engine.py` | 425 | Molecular docking orchestrator |
 | `run.py` | 145 | Python launcher with auto-setup |
 | `run_v2.py` | 180 | Enhanced launcher with checks |
-| `test_server.py` | 92 | Server verification script |
+| `tests/test_server.py` | 92 | Server verification script |
 | `FIX_SUMMARY.md` | 120 | Fix documentation |
 | `STATUS_READY.txt` | 250 | Status report |
 | `DEVELOPMENT_SUMMARY.md` | This file | Comprehensive reference |
-| `install_optional.sh` | 80 | Optional dep installer |
+| `scripts/install_optional.sh` | 80 | Optional dep installer |
 
 **Total New Code: ~1,765 lines**
 
@@ -466,7 +466,7 @@ BIOCANVAS/
 
 | File | Changes |
 |------|---------|
-| `start_biocanvas.command` | Updated to auto-open browser & run in background |
+| `scripts/start_biocanvas.command` | Updated to auto-open browser & run in background |
 | `requirements.txt` | Added `python-multipart==0.0.6` |
 
 ---
@@ -510,7 +510,7 @@ BIOCANVAS/
 **Launchers:**
 ```
 ✅ Python launcher (run.py) - Working
-✅ Bash launcher (start_biocanvas.command) - Working
+✅ Bash launcher (scripts/start_biocanvas.command) - Working
 ✅ Enhanced launcher (run_v2.py) - Working
 ```
 
@@ -949,12 +949,12 @@ open http://localhost:8000/docs
 ### Run Tests
 ```bash
 python3 tests/full_diagnostic.py
-python3 test_server.py
+python3 tests/test_server.py
 ```
 
 ### Install Optional Dependencies
 ```bash
-bash install_optional.sh
+bash scripts/install_optional.sh
 ```
 
 ### Key Files for Reference
