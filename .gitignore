@@ -55,6 +55,12 @@ yarn-error.log*
 
 # Vite
 dist/
+.vite/
+frontend/.vite/
+
+# Docking runtime artifacts
+docking_jobs/*
+!docking_jobs/.gitkeep
 
 # Documentation (optional - keep in repo for reference)
 # docs/
