@@ -9,7 +9,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 logger = logging.getLogger("biocanvas.config")
 
@@ -57,7 +57,7 @@ def _get_bool(key: str, default: bool = False) -> bool:
     return raw.lower() in ("true", "1", "yes")
 
 
-def _get_list(key: str, default: List[str] = None) -> List[str]:
+def _get_list(key: str, default: Optional[List[str]] = None) -> List[str]:
     if default is None:
         default = []
     raw = os.environ.get(f"BIOCANVAS_{key}")
