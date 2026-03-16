@@ -6,6 +6,21 @@ A modern, full-stack bioinformatics application for computational chemistry rese
 
 ---
 
+## 📖 Project Summary
+
+1. **BIOCANVAS** is a full-stack molecular docking platform built for computational chemistry and early-stage drug discovery research.
+2. The **backend** is powered by **FastAPI** (Python) and orchestrates docking jobs using **RDKit**, **Meeko**, **BioPython**, and **AutoDock Vina** for real protein-ligand binding simulations.
+3. The **frontend** is a **React 18 + TypeScript** single-page application (built with Vite) that provides a guided 4-step docking wizard: select a protein, choose a ligand, run the docking job, and view the results.
+4. Users can upload their own **PDB protein files** or pick from a built-in library, and enter **SMILES strings** or select common ligands (e.g., Aspirin, Ibuprofen) to dock against the target protein.
+5. Docking jobs run asynchronously on the server with bounded concurrency (up to 4 simultaneous jobs), and results—including binding affinity, RMSD, and ranked poses—are persisted in a **SQLite** database so they survive server restarts.
+6. A **3D molecular viewer** (3Dmol.js) lets users visually inspect docked complexes, examine individual poses, and analyze protein-ligand interactions directly in the browser.
+7. When AutoDock Vina is not installed, the platform gracefully falls back to a **deterministic simulation mode** with clear banners, making it ideal for demos and development without hiding that results are simulated.
+8. The frontend uses **Zustand** for client-side state management and **React Query** for server-state polling, with Axios interceptors providing global error handling via toast notifications.
+9. The project includes comprehensive documentation (architecture, API reference, frontend guide, deployment guide), a full test suite (pytest + Vitest), and a one-command launcher (`python3 run.py`) that sets up everything automatically.
+10. BIOCANVAS is designed to be **production-ready** with Docker support, systemd deployment, rate limiting, CORS security, error boundaries, and a clean separation of concerns between the API, docking engine, job store, and UI layers.
+
+---
+
 ## ✨ Features
 
 - 🚀 **FastAPI Backend** - Async API with bounded background job execution
