@@ -59,7 +59,7 @@ class TestRootAndHealth:
     def test_health_schema_exact(self, client):
         resp = client.get("/health")
         data = resp.json()
-        expected_keys = {"status", "engine", "timestamp", "jobs_running"}
+        expected_keys = {"status", "engine", "timestamp", "jobs_running", "database", "vina"}
         assert set(data.keys()) == expected_keys
 
 
@@ -358,3 +358,102 @@ class TestStoreAbstraction:
 
     def test_get_nonexistent_returns_none(self):
         assert _store_get("does-not-exist") is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  9. SMILES Validation
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestSMILESValidation:
+
+    def test_valid_smiles_accepted(self):
+        from backend.main import _validate_smiles
+        assert _validate_smiles("CCO") is True  # Ethanol
+        assert _validate_smiles("CC(=O)OC1=CC=CC=C1C(=O)O") is True  # Aspirin
+
+    def test_empty_smiles_rejected(self):
+        from backend.main import _validate_smiles
+        assert _validate_smiles("") is False
+        assert _validate_smiles("   ") is False
+
+    def test_invalid_smiles_rejected(self):
+        from backend.main import _validate_smiles
+        try:
+            from rdkit import Chem  # noqa: F401
+            has_rdkit = True
+        except ImportError:
+            has_rdkit = False
+
+        if has_rdkit:
+            # With RDKit, invalid SMILES should be rejected
+            assert _validate_smiles("NOT_A_SMILES") is False
+            assert _validate_smiles("XYZ123!!!") is False
+        else:
+            # Without RDKit, any non-empty string is accepted (graceful fallback)
+            assert _validate_smiles("NOT_A_SMILES") is True
+
+    def test_dock_rejects_invalid_smiles(self, client, minimal_pdb):
+        """The /dock endpoint should reject invalid SMILES with 400."""
+        import backend.main as main_mod
+        if main_mod.engine is None:
+            pytest.skip("Docking engine not available")
+        pdb_bytes = minimal_pdb.encode()
+        resp = client.post(
+            "/dock",
+            data={"smiles": "DEFINITELY_NOT_VALID_SMILES"},
+            files={"file": ("protein.pdb", pdb_bytes, "application/octet-stream")},
+        )
+        assert resp.status_code == 400
+        assert "Invalid SMILES" in resp.json()["detail"]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  10. Enhanced Health Check
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestEnhancedHealthCheck:
+
+    def test_health_includes_database_field(self, client):
+        resp = client.get("/health")
+        data = resp.json()
+        assert "database" in data
+        assert data["database"] in ("sqlite", "in-memory")
+
+    def test_health_includes_vina_field(self, client):
+        resp = client.get("/health")
+        data = resp.json()
+        assert "vina" in data
+        assert data["vina"] in ("available", "simulation-mode", "unavailable")
+
+    def test_health_returns_request_id_header(self, client):
+        resp = client.get("/health")
+        assert "x-request-id" in resp.headers
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  11. Config Module
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestConfigModule:
+
+    def test_config_defaults_loaded(self):
+        from backend.config import RATE_LIMIT, RATE_WINDOW, MAX_CONCURRENT_DOCKING
+        assert isinstance(RATE_LIMIT, int)
+        assert RATE_LIMIT > 0
+        assert isinstance(RATE_WINDOW, float)
+        assert isinstance(MAX_CONCURRENT_DOCKING, int)
+
+    def test_cors_origins_is_list(self):
+        from backend.config import CORS_ORIGINS
+        assert isinstance(CORS_ORIGINS, list)
+        assert len(CORS_ORIGINS) > 0
+
+    def test_config_env_override(self, monkeypatch):
+        """Environment variables should override defaults."""
+        monkeypatch.setenv("BIOCANVAS_RATE_LIMIT", "99")
+        # Re-import to test (config reads at import time, so test the helper)
+        from backend.config import _get_int
+        assert _get_int("RATE_LIMIT", 10) == 99

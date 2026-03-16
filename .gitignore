@@ -47,6 +47,9 @@ tests/diagnostics/
 # Generated reports
 *.pdf
 
+# Docking runtime data
+docking_jobs/
+
 # Node.js (for React landing page)
 node_modules/
 npm-debug.log*

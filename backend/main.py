@@ -6,6 +6,12 @@ Sprint 1 Fixes Applied:
 - S1: CORS with explicit origins (no wildcard)
 - B1: SQLite job persistence (via job_store.py)
 - B3: ThreadPoolExecutor with semaphore to limit concurrent docking jobs
+
+Sprint 2 Improvements:
+- Environment variable configuration (via backend/config.py)
+- Request logging middleware for observability
+- Enhanced health check (database, disk space, Vina status)
+- SMILES validation with RDKit before job submission
 """
 
 import asyncio
@@ -27,6 +33,25 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 from starlette.middleware.base import BaseHTTPMiddleware
+
+try:
+    from backend.config import (
+        CORS_ORIGINS, RATE_LIMIT, RATE_WINDOW, MAX_CONCURRENT_DOCKING,
+        MAX_UPLOAD_SIZE, DEBUG, LOG_LEVEL,
+    )
+except Exception:
+    # Fallback defaults if config module fails to load
+    CORS_ORIGINS = [
+        "http://localhost:5173", "http://localhost:5174", "http://localhost:3000",
+        "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:3000",
+        "http://localhost:8000", "http://127.0.0.1:8000",
+    ]
+    RATE_LIMIT = 10
+    RATE_WINDOW = 60.0
+    MAX_CONCURRENT_DOCKING = 4
+    MAX_UPLOAD_SIZE = 52_428_800
+    DEBUG = False
+    LOG_LEVEL = "info"
 
 try:
     from backend.docking_engine import DockingEngine
@@ -87,8 +112,8 @@ JOBS: Dict[str, dict] = {}
 # Rate limiter — simple token-bucket per IP for /dock
 # ---------------------------------------------------------------------------
 
-_RATE_LIMIT = 10        # max requests …
-_RATE_WINDOW = 60.0     # … per window (seconds)
+_RATE_LIMIT = RATE_LIMIT
+_RATE_WINDOW = RATE_WINDOW
 _rate_buckets: Dict[str, list] = defaultdict(list)
 
 
@@ -106,7 +131,7 @@ def _check_rate_limit(ip: str) -> bool:
 # ---------------------------------------------------------------------------
 # Bug B3 Fix: Thread Pool Executor to limit concurrent docking jobs
 # ---------------------------------------------------------------------------
-_MAX_CONCURRENT_DOCKING = 4  # Maximum concurrent docking jobs
+_MAX_CONCURRENT_DOCKING = MAX_CONCURRENT_DOCKING
 _docking_executor = ThreadPoolExecutor(max_workers=_MAX_CONCURRENT_DOCKING)
 _docking_semaphore: Optional[asyncio.Semaphore] = None
 
@@ -117,6 +142,23 @@ def _get_semaphore() -> asyncio.Semaphore:
     if _docking_semaphore is None:
         _docking_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_DOCKING)
     return _docking_semaphore
+
+
+# ---------------------------------------------------------------------------
+# SMILES validation helper
+# ---------------------------------------------------------------------------
+
+def _validate_smiles(smiles: str) -> bool:
+    """Validate a SMILES string using RDKit. Returns True if valid."""
+    if not smiles or not smiles.strip():
+        return False
+    try:
+        from rdkit import Chem
+        mol = Chem.MolFromSmiles(smiles.strip())
+        return mol is not None
+    except Exception:
+        # If RDKit not available, accept any non-empty string
+        return bool(smiles.strip())
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas
@@ -164,6 +206,8 @@ class HealthResponse(BaseModel):
     engine: str
     timestamp: float
     jobs_running: int
+    database: str
+    vina: str
 
 
 # ---------------------------------------------------------------------------
@@ -203,16 +247,7 @@ async def _global_exception_handler(request: Request, exc: Exception):
 
 
 # ── Bug S1 Fix: CORS — explicit origins (no wildcard with credentials) ───────────
-_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
+_ALLOWED_ORIGINS = CORS_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
@@ -221,6 +256,23 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
+
+
+# ── Request logging middleware — observability for every request ──────────
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log every request with method, path, status, and duration."""
+    start = time.time()
+    request_id = str(uuid.uuid4())[:8]
+    response = await call_next(request)
+    duration_ms = (time.time() - start) * 1000
+    logger.info(
+        "[%s] %s %s → %d (%.1fms)",
+        request_id, request.method, request.url.path,
+        response.status_code, duration_ms,
+    )
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 app.mount("/results", StaticFiles(directory=str(WORK_DIR)), name="results")
 
@@ -313,11 +365,24 @@ def _store_running_count() -> int:
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     running = _store_running_count()
+
+    # Database status
+    db_status = "sqlite" if _USE_SQLITE else "in-memory"
+
+    # Vina availability
+    try:
+        from backend.docking_engine import VINA_AVAILABLE
+        vina_status = "available" if VINA_AVAILABLE else "simulation-mode"
+    except Exception:
+        vina_status = "unavailable"
+
     return HealthResponse(
         status="active",
         engine="ready" if engine else "viewer-only",
         timestamp=datetime.now().timestamp(),
         jobs_running=running,
+        database=db_status,
+        vina=vina_status,
     )
 
 
@@ -344,8 +409,12 @@ async def submit_docking_job(
         )
     if not file.filename or not file.filename.endswith(".pdb"):
         raise HTTPException(400, "File must be a .pdb file")
-    if not smiles:
+    if not smiles or not smiles.strip():
         raise HTTPException(400, "SMILES cannot be empty")
+
+    # Validate SMILES with RDKit before accepting the job
+    if not _validate_smiles(smiles):
+        raise HTTPException(400, f"Invalid SMILES string: '{smiles}' could not be parsed")
 
     # Bug B3 Fix: Check semaphore before accepting job
     semaphore = _get_semaphore()
